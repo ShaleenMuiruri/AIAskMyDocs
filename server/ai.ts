@@ -1,20 +1,22 @@
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import { DocumentChunk } from "@shared/schema";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY=REMOVED  || '',
+// Initialize Anthropic client
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Generate embeddings for text
+// Generate embeddings for text using Anthropic (Claude 3 Haiku embeddings)
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
+    // Anthropic embeddings require a 'task' parameter
+    const response = await anthropic.embeddings.create({
+      model: "claude-3-haiku-20240307",
       input: text,
+      dimensions: 1536, // Using 1536 dimensions to match OpenAI's embedding size
     });
     
-    return response.data[0].embedding;
+    return response.embedding;
   } catch (error) {
     console.error("Error generating embedding:", error);
     throw new Error(`Failed to generate embedding: ${error.message}`);
@@ -35,30 +37,29 @@ export async function generateAnswer(
       })
       .join("\n");
 
-    // Create prompt
-    const prompt = `
-You are an intelligent assistant helping users answer questions based on uploaded documents.
-Here's the question: "${question}"
+    // Create system prompt
+    const systemPrompt = `You are an intelligent assistant helping users answer questions based on uploaded documents.
+Answer the question as clearly as possible using only the provided document context.
+If the answer is not found in the document context, say "I couldn't find information about that in your documents."
+Format your answer to be reader-friendly, using bullet points or numbered lists when appropriate.`;
+
+    // Create user prompt
+    const userPrompt = `Here's the question: "${question}"
 Here's the relevant context from the document:
-${formattedChunks}
+${formattedChunks}`;
 
-Answer the question as clearly as possible using only the document.
-If the answer is not found in the document, say "I couldn't find information about that in your documents."
-Format your answer to be reader-friendly, using bullet points or numbered lists when appropriate.
-`;
-
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: "You are an AI assistant specialized in answering questions about documents." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.5,
+    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+    const response = await anthropic.messages.create({
+      model: "claude-3-7-sonnet-20250219",
       max_tokens: 1000,
+      temperature: 0.5,
+      system: systemPrompt,
+      messages: [
+        { role: "user", content: userPrompt }
+      ],
     });
 
-    return response.choices[0].message.content || "Sorry, I was unable to generate an answer.";
+    return response.content[0].text || "Sorry, I was unable to generate an answer.";
   } catch (error) {
     console.error("Error generating answer:", error);
     throw new Error(`Failed to generate answer: ${error.message}`);
