@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { DocumentChunk } from "@shared/schema";
 
 // Initialize Anthropic client
@@ -6,20 +7,23 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Generate embeddings for text using Anthropic (Claude 3 Haiku embeddings)
+// Initialize OpenAI client just for embeddings
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY=REMOVED  || '',
+});
+
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    // Anthropic embeddings require a 'task' parameter
-    const response = await anthropic.embeddings.create({
-      model: "claude-3-haiku-20240307",
+    // Using OpenAI for embeddings as it's more established for this purpose
+    const response = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
       input: text,
-      dimensions: 1536, // Using 1536 dimensions to match OpenAI's embedding size
     });
     
-    return response.embedding;
-  } catch (error) {
+    return response.data[0].embedding;
+  } catch (error: any) {
     console.error("Error generating embedding:", error);
-    throw new Error(`Failed to generate embedding: ${error.message}`);
+    throw new Error(`Failed to generate embedding: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -59,10 +63,15 @@ ${formattedChunks}`;
       ],
     });
 
-    return response.content[0].text || "Sorry, I was unable to generate an answer.";
-  } catch (error) {
+    // Check if we have a text response
+    if (response.content && response.content.length > 0 && 'text' in response.content[0]) {
+      return response.content[0].text;
+    }
+    
+    return "Sorry, I was unable to generate an answer.";
+  } catch (error: any) {
     console.error("Error generating answer:", error);
-    throw new Error(`Failed to generate answer: ${error.message}`);
+    throw new Error(`Failed to generate answer: ${error.message || 'Unknown error'}`);
   }
 }
 
@@ -73,8 +82,8 @@ export function splitTextIntoChunks(
   overlap: number = 200
 ): string[] {
   const words = text.split(/\s+/);
-  const chunks = [];
-  let currentChunkWords = [];
+  const chunks: string[] = [];
+  let currentChunkWords: string[] = [];
   let currentChunkSize = 0;
 
   for (const word of words) {
