@@ -1,0 +1,130 @@
+🧠 Project: AskMyDocs (AI Q&A over User Documents)
+Goal: Build a full-stack AI-powered app where users upload documents and ask questions to get answers powered by Claude/GPT, using similarity search over document embeddings.
+
+✅ Full Instructions for the AI Builder
+⚠️ Use these as copy-paste input into your AI builder’s prompt or config tool.
+
+📦 1. Project Setup
+Framework: Next.js with App Router
+
+Frontend: React, Tailwind CSS
+
+Backend: Node.js (Express or API routes)
+
+Database: PostgreSQL with pgvector enabled
+
+Cloud: AWS S3 for file storage
+
+AI Model: GPT-4 (OpenAI API) or Claude via Anthropic API
+
+📁 2. Pages to Generate
+/ – Home (Upload & Ask)
+Upload one or more documents
+
+Input field: “Ask a question about your uploaded files”
+
+Button to submit question
+
+Display: AI-generated answer and related context from the file
+
+/documents – My Documents
+Table of uploaded files:
+
+File name
+
+Type
+
+Upload date
+
+Status ("Processing", "Ready")
+
+Actions: View, Delete
+
+/answers/:id – Answer Detail Page
+Show the question, answer, and matched document snippets
+
+🔌 3. API Endpoints to Build
+POST /api/upload
+Accept file uploads (PDF, DOCX, TXT)
+
+Upload to S3
+
+Extract raw text using AWS Textract or pdf-parse/mammoth
+
+Chunk the text and generate embeddings (use openai/embeddings or cohere/embed)
+
+Store chunks + embeddings + metadata in PostgreSQL
+
+POST /api/ask-question
+Input: { question: string }
+
+Steps:
+
+Embed the question
+
+Perform pgvector similarity search in Postgres
+
+Retrieve top N context chunks
+
+Construct a prompt and call Claude/GPT API
+
+Return the answer and referenced chunks
+
+GET /api/documents
+Return list of user-uploaded files + status
+
+DELETE /api/documents/:id
+Delete from S3 and database
+
+🧾 4. PostgreSQL Schema
+sql
+Copy
+Edit
+-- Table to store documents
+CREATE TABLE documents (
+  id UUID PRIMARY KEY,
+  filename TEXT,
+  s3_url TEXT,
+  created_at TIMESTAMP DEFAULT now(),
+  status TEXT
+);
+
+-- Table to store embedded chunks
+CREATE TABLE document_chunks (
+  id UUID PRIMARY KEY,
+  document_id UUID REFERENCES documents(id),
+  content TEXT,
+  embedding VECTOR(1536)  -- Adjust dimension as per model
+);
+
+-- Index for vector search
+CREATE INDEX ON document_chunks USING ivfflat (embedding vector_cosine_ops);
+🧠 5. AI Prompt Template (backend)
+ts
+Copy
+Edit
+const prompt = `
+You are an intelligent assistant helping users answer questions based on uploaded documents.
+Here’s the question: "${userQuestion}"
+Here’s the relevant context from the document:\n${topChunks.join("\n\n")}
+Answer the question as clearly as possible using only the document.
+`;
+☁️ 6. AWS S3 Integration Notes
+Bucket: askmydocs-uploads
+
+Store files under path: user-id/documents/{filename}
+
+Use pre-signed URLs for uploads/downloads
+
+🧪 7. Developer Experience
+Add .env with API keys for OpenAI or Claude, AWS credentials, DB URL
+
+Use Prisma or Drizzle ORM to manage Postgres schema
+
+Include Dockerfile for local testing
+
+Deployment target: Vercel for frontend/API and Railway/Supabase for backend/DB
+
+✅ Summary for the Builder
+“Build a full-stack app using React (Next.js), Node.js, PostgreSQL (with pgvector), AWS S3, and Claude/GPT API. The app allows users to upload documents, ask questions, and get AI-generated answers using context-aware embeddings. Integrate API endpoints, S3, Postgres, and OpenAI/Anthropic APIs with good UX.”
+
