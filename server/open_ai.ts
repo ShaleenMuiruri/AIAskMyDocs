@@ -1,45 +1,21 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { OpenAI } from "openai";
 import { DocumentChunk } from "@shared/schema";
 
 // Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+const openai = new OpenAI({
+  apiKey: process.env.OPEN_AI_API_KEY || '',
 });
 
-// Generate embeddings for text using Anthropic
+// Generate embeddings for text using OpenAI
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    // Generate a message vector instead using Claude's message API
-    // This is a workaround since we're focusing exclusively on Claude
-    // We'll use the message content to generate an array of values that can serve as "embeddings"
-    const response = await anthropic.messages.create({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 50,
-      system: "Generate a numerical fingerprint for this text as a vector of values.",
-      messages: [{ role: "user", content: text }]
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+      encoding_format: "float",
     });
     
-    // Generate a deterministic vector from the text content
-    // This simulates an embedding by creating a reproducible vector representation
-    let content = text;
-    if (response.content && response.content.length > 0 && 'text' in response.content[0]) {
-      content = response.content[0].text;
-    }
-    const vector: number[] = [];
-    
-    // Create a 1536-dimensional vector (same as OpenAI embeddings)
-    // This is a simplified representation - not as precise as true embeddings
-    // but will allow us to continue without OpenAI
-    for (let i = 0; i < 1536; i++) {
-      // Use character codes and positions to generate numbers
-      const charIndex = i % content.length;
-      const charCode = content.charCodeAt(charIndex);
-      const position = i / 1536;
-      // Generate a value between -1 and 1
-      vector.push(Math.sin(charCode * position) * 0.5);
-    }
-    
-    return vector;
+    return response.data[0].embedding;
   } catch (error: any) {
     console.error("Error generating embedding:", error);
     throw new Error(`Failed to generate embedding: ${error.message || 'Unknown error'}`);
@@ -66,25 +42,21 @@ Answer the question as clearly as possible using only the provided document cont
 If the answer is not found in the document context, say "I couldn't find information about that in your documents."
 Format your answer to be reader-friendly, using bullet points or numbered lists when appropriate.`;
 
-    // Create user prompt
-    const userPrompt = `Here's the question: "${question}"
-Here's the relevant context from the document:
-${formattedChunks}`;
-
-    // Using Claude model for text generation
-    const response = await anthropic.messages.create({
-      model: "claude-3-opus-20240229",
-      max_tokens: 1000,
+    // Using OpenAI model for text generation
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
       temperature: 0.5,
-      system: systemPrompt,
       messages: [
-        { role: "user", content: userPrompt }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Here's the question: "${question}"
+Here's the relevant context from the document:
+${formattedChunks}` }
       ],
     });
 
-    // Check if we have a text response
-    if (response.content && response.content.length > 0 && 'text' in response.content[0]) {
-      return response.content[0].text;
+    // Check if we have a response
+    if (response.choices && response.choices.length > 0 && response.choices[0].message.content) {
+      return response.choices[0].message.content;
     }
     
     return "Sorry, I was unable to generate an answer.";
