@@ -28,7 +28,7 @@ export const documentChunks = pgTable("document_chunks", {
   documentId: uuid("document_id").references(() => documents.id, { onDelete: 'cascade' }).notNull(),
   content: text("content").notNull(),
   pageNumber: text("page_number"),
-  embedding: vector("embedding", { dimensions: 1536 }),
+  embedding: vector("embedding", { dimensions: 768 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -1,0 +1,20 @@
+{
+  "id": "0001_update_vector_dimensions",
+  "prevId": "0000_amusing_centennial",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.document_chunks": {
+      "name": "document_chunks",
+      "schema": "",
+      "columns": {
+        "embedding": {
+          "name": "embedding",
+          "type": "vector(768)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      }
+    }
+  }
+} 
