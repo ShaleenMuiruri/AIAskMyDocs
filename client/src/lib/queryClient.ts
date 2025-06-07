@@ -12,7 +12,14 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Ensure URL has /api prefix
+  // Simplified URL handling for proxy compatibility
+  const apiUrl = url.startsWith('/api') 
+    ? url 
+    : `/api${url.startsWith('/') ? url : `/${url}`}`;
+  
+  
+  const res = await fetch(apiUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +36,23 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Extract and format URL from queryKey
+    const url = queryKey[0] as string;
+    const params = queryKey[1] as Record<string, string> | undefined;
+    
+    // Ensure URL has /api prefix (simple and reliable)
+    const apiUrl = url.startsWith('/api') 
+      ? url 
+      : `/api${url.startsWith('/') ? url : `/${url}`}`;
+    
+    // Add query parameters if present
+    const fullUrl = params 
+      ? `${apiUrl}${apiUrl.includes('?') ? '&' : '?'}${new URLSearchParams(params)}` 
+      : apiUrl;
+    
+    console.log(`Making query request to: ${fullUrl}`);
+    
+    const res = await fetch(fullUrl, {
       credentials: "include",
     });
 
