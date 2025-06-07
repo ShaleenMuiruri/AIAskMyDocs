@@ -71,24 +71,36 @@ const FileUpload = ({ onUploadComplete, onUploadStart }: FileUploadProps) => {
       }
       
       try {
+        console.log(`Starting upload for ${file.name}`);
+
         setIsUploading(true);
         onUploadStart();
         
         const formData = new FormData();
         formData.append('file', file);
-        
+        console.log("FormData created with file", file.name);
+
+        console.log("Sending fetch request to /api/upload");
+
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
           credentials: 'include',
         });
+        console.log("Fetch response received:", { 
+          status: response.status, 
+          statusText: response.statusText,
+          ok: response.ok
+        });
+        
         
         if (!response.ok) {
           throw new Error(`Upload failed: ${response.statusText}`);
         }
-        
+        console.log("Parsing response JSON");
+
         const document = await response.json();
-        
+        console.log("Parsed response JSON:", document);
         toast({
           title: "File uploaded",
           description: `${file.name} has been uploaded successfully.`,

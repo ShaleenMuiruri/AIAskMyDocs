@@ -3,7 +3,7 @@ import { FileText, FileIcon, Trash2Icon, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -16,24 +16,55 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+type Document = {
+  id: string;
+  filename: string;
+  fileType: string;
+  s3Url: string;
+  createdAt: Date | string;
+  status: 'processing' | 'ready' | 'failed';
+};
+
 interface DocumentItemProps {
-  document: {
-    id: string;
-    filename: string;
-    fileType: string;
-    createdAt: string;
-    status: string;
-  };
+  document: Document;
   view?: "list" | "table";
 }
 
-const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
+const DocumentItem = ({ document: initialDocument, view = "list" }: DocumentItemProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+
+  // Fetch and subscribe to document updates
+  const queryOptions: UseQueryOptions<Document, Error, Document> = {
+    queryKey: ['/api/documents', initialDocument.id],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/documents/${initialDocument.id}`);
+      const data = await response.json() as Document;
+      // Convert createdAt string to Date if needed
+      if (typeof data.createdAt === 'string') {
+        data.createdAt = new Date(data.createdAt);
+      }
+      return data;
+    },
+    initialData: initialDocument,
+    refetchInterval: (query) => {
+      const data = query.state.data as Document | undefined;
+      return data?.status === 'processing' ? 2000 : false;
+    },
+  };
+
+  const { data } = useQuery(queryOptions);
+  // We can safely assert non-null here because we have initialData
+  const document = data!;
 
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
+      // Optimistically update the UI
+      queryClient.setQueryData<Document[]>(['/api/documents'], (old) => 
+        old?.filter(d => d.id !== document.id) ?? []
+      );
+      
       await apiRequest('DELETE', `/api/documents/${document.id}`);
       
       // Invalidate documents query
@@ -44,10 +75,12 @@ const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
         description: `${document.filename} has been deleted.`,
       });
     } catch (error) {
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['/api/documents'] });
       console.error("Delete error:", error);
       toast({
         title: "Delete failed",
-        description: error.message || "An error occurred while deleting the document.",
+        description: (error as Error).message || "An error occurred while deleting the document.",
         variant: "destructive",
       });
     } finally {
@@ -73,7 +106,7 @@ const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
       case 'ready':
         return <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Ready</span>;
       case 'processing':
-        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">Processing</span>;
+        return <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 animate-pulse">Processing</span>;
       case 'failed':
         return <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Failed</span>;
       default:
@@ -81,7 +114,10 @@ const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
     }
   };
 
-  const timeAgo = formatDistanceToNow(new Date(document.createdAt), { addSuffix: true });
+  const timeAgo = formatDistanceToNow(
+    typeof document.createdAt === 'string' ? new Date(document.createdAt) : document.createdAt,
+    { addSuffix: true }
+  );
 
   if (view === "table") {
     return (
@@ -93,7 +129,7 @@ const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
           </div>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-          <span className="text-sm text-gray-600">{document.fileType.toUpperCase()}</span>
+          <span className="text-sm text-gray-600">{document.fileType?.toUpperCase()}</span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <span className="text-sm text-gray-600">{timeAgo}</span>
@@ -148,7 +184,7 @@ const DocumentItem = ({ document, view = "list" }: DocumentItemProps) => {
         <div className="ml-3">
           <p className="text-sm font-medium text-gray-900">{document.filename}</p>
           <p className="text-xs text-gray-500">
-            {document.fileType.toUpperCase()} • Uploaded {timeAgo}
+            {document.fileType?.toUpperCase()} • Uploaded {timeAgo}
           </p>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { FileText, Loader2 } from "lucide-react";
 import DocumentItem from "./DocumentItem";
 import { Button } from "@/components/ui/button";
 import FileUpload from "@/components/ui/file-upload";
+import { Document } from "@shared/schema";
 
 interface DocumentsListProps {
   view?: "recent" | "full";
@@ -13,15 +14,17 @@ interface DocumentsListProps {
 
 const DocumentsList = ({ view = "full", limit = 3, showUpload = false }: DocumentsListProps) => {
   const [isUploading, setIsUploading] = useState(false);
-  
+
   const { 
     data: documents, 
     isLoading, 
     error, 
     refetch
-  } = useQuery({ 
-    queryKey: ['/api/documents'] 
+  } = useQuery<Document[]>({ 
+    queryKey: ['/api/documents'],
+    // Let the queryClient handle the fetching consistently with proper error handling
   });
+
 
   // Handle document upload completion
   const handleUploadComplete = () => {
@@ -86,7 +89,7 @@ const DocumentsList = ({ view = "full", limit = 3, showUpload = false }: Documen
 
         {hasDocuments ? (
           <div className="space-y-3">
-            {displayedDocuments.map((doc) => (
+            {displayedDocuments.map((doc: Document) => (
               <DocumentItem key={doc.id} document={doc} />
             ))}
           </div>

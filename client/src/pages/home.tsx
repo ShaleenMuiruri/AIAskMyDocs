@@ -38,7 +38,7 @@ const HomePage = () => {
         { 
           role: "assistant", 
           content: response.answer,
-          sources: response.contexts?.map(context => ({
+          sources: response.contexts?.map((context: { pageNumber: any; content: any; }) => ({
             filename: response.document?.filename || "Document",
             fileType: response.document?.fileType || "unknown",
             page: context.pageNumber,
