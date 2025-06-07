@@ -6,8 +6,8 @@ import { Readable } from "stream";
 const s3 = new S3Client({
   region: "eu-north-1", // Hardcoded to eu-north-1 since the env var contains extra text
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID=REMOVED || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY=REMOVED || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 });
 

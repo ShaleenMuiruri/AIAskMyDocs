@@ -10,8 +10,8 @@ const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const s3 = new S3Client({
   region: "eu-north-1", // Using the same region as in s3.ts
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID=REMOVED || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY=REMOVED || "",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   },
 });
 
