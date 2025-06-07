@@ -1,10 +1,49 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
+
+const clientUrl = process.env.VITE_CLIENT_URL || "http://localhost:5173";
+const apiUrl = process.env.VITE_API_URL || "http://localhost:5002";
+
+// Configure CORS - must be before any other middleware
+const isDevelopment = process.env.NODE_ENV === "development";
+const corsOptions = {
+  origin: isDevelopment ? "*" : [clientUrl, apiUrl].filter(Boolean) as string[],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Cache-Control'],
+  exposedHeaders: ['Content-Range', 'X-Total-Count'],
+  maxAge: 86400, // 24 hours
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+// Apply CORS middleware first
+app.use(cors(corsOptions));
+
+// Then apply other middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add CORS headers manually for more reliability
+app.use((req, res, next) => {
+  if (isDevelopment) {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      console.log(`CORS preflight request received for: ${req.url} from ${req.headers.origin}`);
+      return res.status(204).end();
+    }
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -39,6 +78,18 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Add a simple test endpoint to verify CORS functionality
+  app.get('/api/test-cors', (req, res) => {
+    const requestOrigin = req.headers.origin || 'Unknown';
+    log(`Test CORS endpoint accessed from origin: ${requestOrigin}`);
+    return res.json({ 
+      message: 'CORS test successful!',
+      timestamp: new Date().toISOString(),
+      origin: requestOrigin,
+      headers: req.headers
+    });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -56,10 +107,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 5002
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = process.env.VITE_API_PORT;
   server.listen({
     port,
     host: "0.0.0.0",
