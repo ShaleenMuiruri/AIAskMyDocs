@@ -11,7 +11,7 @@ const s3 = new S3Client({
   },
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || "askmydocs-uploads";
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 // Upload file to S3
 export async function uploadFileToS3(
@@ -34,7 +34,7 @@ export async function uploadFileToS3(
     return `s3://${BUCKET_NAME}/${key}`;
   } catch (error) {
     console.error("Error uploading file to S3:", error);
-    throw new Error(`Failed to upload file to S3: ${error.message}`);
+    throw new Error(`Failed to upload file to S3: ${error as Error}.message`);
   }
 }
 
@@ -51,7 +51,7 @@ export async function getSignedDownloadUrl(s3Url: string): Promise<string> {
     return await getSignedUrl(s3, command, { expiresIn: 3600 }); // URL expires in 1 hour
   } catch (error) {
     console.error("Error generating signed URL:", error);
-    throw new Error(`Failed to generate signed URL: ${error.message}`);
+    throw new Error(`Failed to generate signed URL: ${error as Error}.message`);
   }
 }
 
@@ -70,7 +70,7 @@ export async function deleteFileFromS3(s3Url: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Error deleting file from S3:", error);
-    throw new Error(`Failed to delete file from S3: ${error.message}`);
+    throw new Error(`Failed to delete file from S3: ${error as Error}.message`);
   }
 }
 
@@ -101,7 +101,7 @@ export async function getFileFromS3(s3Url: string): Promise<Buffer> {
     });
   } catch (error) {
     console.error("Error getting file from S3:", error);
-    throw new Error(`Failed to get file from S3: ${error.message}`);
+    throw new Error(`Failed to get file from S3: ${error as Error}.message`);
   }
 }
 
