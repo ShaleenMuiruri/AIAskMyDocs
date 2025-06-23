@@ -1,12 +1,12 @@
-# AskMyDocs
+# InsightValut
 
-AskMyDocs is an AI-powered document Q&A platform. Upload your documents and ask questions—get instant, intelligent answers powered by state-of-the-art AI models.
+InsightValut is an AI-powered document Q&A platform. Upload your documents and ask questions—get instant, intelligent answers powered by state-of-the-art AI models.
 
 ## Features
 
 - Upload and store documents securely
 - Ask questions and get answers from your documents
-- Uses OpenAI and Gemini for AI-powered responses
+- Uses OpenAI for AI-powered responses
 - S3-compatible storage integration
 - Modern, user-friendly web interface
 
@@ -24,7 +24,7 @@ AskMyDocs is an AI-powered document Q&A platform. Upload your documents and ask 
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/AskMyDocs.git
+   git clone https://github.com/yourusername/InsightVault.git
    cd AskMyDocs
    ```
 
@@ -57,20 +57,6 @@ AskMyDocs is an AI-powered document Q&A platform. Upload your documents and ask 
    npm run dev
    ```
 
-## Usage
-
-- Visit `http://localhost:3000` in your browser.
-- Upload documents and start asking questions!
-
-## Security
-
-**Never commit your real `.env` files or secrets to version control.**  
-Use `.env.example` files for sharing configuration structure.
-
 ## Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-
-## License
-
-[MIT](LICENSE) 
